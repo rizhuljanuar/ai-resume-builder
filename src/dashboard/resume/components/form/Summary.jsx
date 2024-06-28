@@ -6,12 +6,16 @@ import { useParams } from 'react-router-dom';
 import GlobalApi from './../../../../../service/GlobalApi';
 import { toast } from 'sonner';
 import { Brain, LoaderCircle } from 'lucide-react';
+import { AIChatSession } from './../../../../../service/AIModal';
 
+
+const prompt="Job Title: {jobTitle} , Depends on job title give me list of  summery for 3 experience level, Mid Level and Freasher level in 3 -4 lines in array format, With summery and experience_level Field in JSON Format";
 function Summary({enableNext}) {
   const {resumeInfo, setResumeInfo} = useContext(ResumeInfoContext);
   const [summary, setSummary] = useState();
   const [loading, setLoading] = useState(false);
   const params = useParams();
+  const [aiGeneratedSummaryList, setAiGeneratedSummaryList] = useState();
 
   useEffect(() => {
     summary && setResumeInfo({
@@ -19,6 +23,17 @@ function Summary({enableNext}) {
       summary: summary
     })
   }, [summary]);
+
+  const GenerateSummaryFromAI = async () => {
+    setLoading(true);
+    const PROMT = prompt.replace('{jobTitle}', resumeInfo?.jobTitle);
+    console.log(PROMT)
+    const result = await AIChatSession.sendMessage(PROMT);
+
+    console.log(result.response.text())
+    setAiGeneratedSummaryList(JSON.parse(result.response.text()));
+    setLoading(false);
+  }
 
   const onSave = (e) => {
     e.preventDefault();
@@ -64,6 +79,7 @@ function Summary({enableNext}) {
               type="button"
               size="sm" 
               className="border-primary text-primary flex gap-2"
+              onClick={() => GenerateSummaryFromAI()}
             >
               <Brain className="w-4 h-4" /> Generate from AI
             </Button>
@@ -82,6 +98,22 @@ function Summary({enableNext}) {
           </div>
         </form>
       </div>
+
+      {aiGeneratedSummaryList && 
+        <div className="my-5">
+          <h2 className="font-bold text-lg">Suggestions</h2>
+          {aiGeneratedSummaryList.map((item, index) => (
+            <div 
+              key={index}
+              onClick={() => setSummary(item?.summary)}
+              className="p-5 shadow-lg my-4 rounded-lg cursor-pointer"
+            >
+              <h2 className="font-bold my-1 text-primary">Level: {item?.experienceLevel}</h2>
+              <p>{item.summary}</p>
+            </div>
+          ))};
+        </div>
+      }
     </div>
   )
 }
